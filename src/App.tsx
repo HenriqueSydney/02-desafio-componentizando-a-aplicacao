@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { SideBar } from './components/SideBar'
 import { Content } from './components/Content'
@@ -16,15 +16,28 @@ interface GenreResponseProps {
   title: string
 }
 
+interface MovieProps {
+  imdbID: string
+  Title: string
+  Poster: string
+  Ratings: Array<{
+    Source: string
+    Value: string
+  }>
+  Runtime: string
+}
+
 export function App() {
   const [selectedGenreId, setSelectedGenreId] = useState(1)
   const [selectedGenre, setSelectedGenre] = useState<GenreResponseProps>(
     {} as GenreResponseProps,
   )
+  const [movies, setMovies] = useState<MovieProps[]>([])
+  const [genres, setGenres] = useState<GenreResponseProps[]>([])
 
-  function handleClickButton(id: number) {
+  const handleClickButton = useCallback((id: number) => {
     setSelectedGenreId(id)
-  }
+  }, [])
 
   useEffect(() => {
     api
@@ -32,18 +45,28 @@ export function App() {
       .then((response) => {
         setSelectedGenre(response.data)
       })
+
+    api
+      .get<MovieProps[]>(`movies/?Genre_id=${selectedGenreId}`)
+      .then((response) => {
+        setMovies(response.data)
+      })
   }, [selectedGenreId])
+
+  useEffect(() => {
+    api.get<GenreResponseProps[]>('genres').then((response) => {
+      setGenres(response.data)
+    })
+  }, [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row' }}>
       <SideBar
         handleClickButton={handleClickButton}
         selectedGenreId={selectedGenreId}
+        genres={genres}
       />
-      <Content
-        selectedGenre={selectedGenre}
-        selectedGenreId={selectedGenreId}
-      />
+      <Content selectedGenre={selectedGenre} movies={movies} />
     </div>
   )
 }
